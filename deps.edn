@@ -1,2 +1,2 @@
 {:paths ["src"]
- :deps {dali/dali {:mvn/version "1.0.2"}}}
+ :deps {}}

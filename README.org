@@ -1,6 +1,14 @@
-#+title: README
+#+title: clj-craft
 
-* Templates
+* About
+
+A collection of scripts for (modded) Minecraft
+
+** clj-craft.recipe
+
+Script to calculate recipe dependencies for faster crafting
+
+* Development Stack
 
 The project is implemented in `clojure` utilizing `deps.edn`/`clj-tools`.
 
