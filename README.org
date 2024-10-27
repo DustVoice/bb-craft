@@ -1,0 +1,8 @@
+#+title: README
+
+* Templates
+
+The project is implemented in `clojure` utilizing `deps.edn`/`clj-tools`.
+
+For development I use [[https://github.com/doomemacs/doomemacs][Doom Emacs]] with [[https://github.com/clojure-emacs/cider][CIDER]].
+Any specifics can be seen in my [[https://github.com/DustVoice/dotfiles][dotfiles]].
