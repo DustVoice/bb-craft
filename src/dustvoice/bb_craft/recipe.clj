@@ -1,7 +1,7 @@
-(ns clj-craft.recipe
-  (:gen-class)
+(ns dustvoice.bb-craft.recipe
   (:require [clojure.math :as math]
-            [clojure.core.reducers :as r]))
+            [babashka.cli :as cli]
+            [clojure.edn :as edn]))
 
 (def recipes {"Dia" nil
               "Gold" nil
@@ -32,10 +32,10 @@
               "4096k Part" {:ingr {"1024k Part" 3 "Adv Proc" 4 "Redstone" 1 "QEI" 1}}
               "16384k Part" {:ingr {"4096k Part" 3 "Adv Proc" 4 "Redstone" 1 "QEI" 1}}
               "Gravitational Modulating Unit" {:ingr {"Atomic Alloy" 2
-                                                             "Nether Star" 1
-                                                             "Ultimate Induction Provider" 2
-                                                             "Module Base" 1
-                                                             "Antimatter Pellet" 3}}
+                                                      "Nether Star" 1
+                                                      "Ultimate Induction Provider" 2
+                                                      "Module Base" 1
+                                                      "Antimatter Pellet" 3}}
               "Atomic Alloy" {:ingr {"Reinforced Alloy" 1 "Refined Obsidian Dust" 1}}
               "Refined Obsidian Dust" {:ingr {"Obsidian Dust" 1 "Diamond Dust" 1}}
               "Reinforced Alloy" {:ingr {"Infused Alloy" 1 "Diamond Dust" 1}}
@@ -54,8 +54,7 @@
               "Ultimate Induction Provider" {:ingr {"Ultimate Control Circuit" 4 "Elite Induction Provider" 4 "Ultimate Energy Cube" 1}}
               "Elite Induction Provider" {:ingr {"Elite Control Circuit" 4 "Advanced Induction Provider" 4 "Elite Energy Cube" 1}}
               "Advanced Induction Provider" {:ingr {"Advanced Control Circuit" 4 "Basic Induction Provider" 4 "Advanced Energy Cube" 1}}
-              "Basic Induction Provider" {:ingr {"Basic Control Circuit" 4 "Lithium Dust" 4 "Basic Energy Cube" 1}}
-              })
+              "Basic Induction Provider" {:ingr {"Basic Control Circuit" 4 "Lithium Dust" 4 "Basic Energy Cube" 1}}})
 
 (declare cook)
 
@@ -72,40 +71,40 @@
                                        :else (update-vals cooked #(/ % yield))))))))
 
 (defn cook
-  "Returns a map of the total amount of items needed to fullfill a given item quantity list"
-  [items]
-  (->> items
-       (map (fn [[name quantity]]
-              (let [count (itemcount name)]
-                (cond (= quantity 1) count
-                      :else (update-vals count #(* % quantity))))))
-       (apply merge-with +)))
-
-(defn pcook
-  "Returns a map of the total amount of items needed to fullfill a given item quantity list. Computation happens in parrallel"
+  "Returns a map of the total amount of items needed to fullfill a given item quantity list. Uses pmap"
   [items]
   (->> items
        (pmap (fn [[name quantity]]
-              (let [count (itemcount name)]
-                (cond (= quantity 1) count
-                      :else (update-vals count #(* % quantity))))))
-       (r/fold (partial merge-with +))))
+               (let [count (itemcount name)]
+                 (cond (= quantity 1) count
+                       :else (update-vals count #(* % quantity))))))
+       (apply merge-with +)))
 
 (defn min-count
   "Returns the math/ceil of every itemcount"
   [itemlist]
   (update-vals itemlist #(int (math/ceil %))))
 
-#_(println "Refined Storage: 16384k Part")
-#_(doseq [[name quantity] (sort-by val > (min-count (cook {"16384k Part" 1})))] (println name ":" quantity))
 
-#_(println "=========")
 
-#_(println "Mekanism: Gravitational Modulating Unit")
-#_(doseq [[name quantity] (sort-by val > (min-count (cook {"Gravitational Modulating Unit" 1})))] (println name ":" quantity))
+(def cli-spec
+  {:spec
+   {:item {:desc "A list of items to be processed"
+           :alias :i
+           :require true
+           :coerce []}
+    :num {:desc "A list of item quantities to be processed (positional dependency on :items)"
+          :alias :n
+          :require false
+          :coerce []}
+    :args->opts (apply concat (repeat '(:item :num)))}})
 
 (defn -main
   [& args]
-  (time (sort-by val > (min-count (cook {"16384k Part" 1}))))
-  (time (sort-by val > (min-count (pcook {"16384k Part" 1}))))
-  (System/exit 0))
+  (prn args)
+  (let [opts (cli/parse-opts args cli-spec)]
+    (prn opts)
+    (prn (sort-by val > (min-count (cook (zipmap (:item opts)
+                                                 (if (contains? opts :num)
+                                                   (:num opts)
+                                                   (repeat 1)))))))))
