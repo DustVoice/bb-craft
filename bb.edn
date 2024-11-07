@@ -1,2 +1,2 @@
 {:paths ["src"]
- :deps {}}
+ :deps {io.github.lispyclouds/bblgum {:git/sha "b1b939ae5ae522a55499a8260b450e8898f77781"}}}

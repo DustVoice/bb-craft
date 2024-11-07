@@ -1,7 +1,7 @@
 (ns dustvoice.bb-craft.recipe
   (:require [clojure.math :as math]
             [babashka.cli :as cli]
-            [clojure.edn :as edn]))
+            [bblgum.core :as b]))
 
 (def recipes {"Dia" nil
               "Gold" nil
@@ -85,26 +85,29 @@
   [itemlist]
   (update-vals itemlist #(int (math/ceil %))))
 
+(defn select-quantities
+  "Let the user choose to select quantities for an item or auto-select 1"
+  [item]
+  (Integer/parseInt (first (:result (b/gum :input
+                                           :header (format "How many of %s do you want?" item)
+                                           :value "1")))))
 
-
-(def cli-spec
-  {:spec
-   {:item {:desc "A list of items to be processed"
-           :alias :i
-           :require true
-           :coerce []}
-    :num {:desc "A list of item quantities to be processed (positional dependency on :items)"
-          :alias :n
-          :require false
-          :coerce []}
-    :args->opts (apply concat (repeat '(:item :num)))}})
+(defn select-items
+  "Let the user select items and respective quantities to cook"
+  []
+  (let [items (:result (b/gum :filter (keys (into (sorted-map) recipes))
+                              :header "Choose which item to cook"
+                              :no-limit true))
+        specify-quantities? (:result (b/gum :confirm ["Do you want to specify quantities for each selected item?"]
+                                            :default false
+                                            :affirmative "Yes, specify quantities"
+                                            :negative "No, only one of each"
+                                            :as :bool))]
+    (into {} (map (fn [item] [item (if specify-quantities?
+                                     (select-quantities item)
+                                     1)])
+                  items))))
 
 (defn -main
   [& args]
-  (prn args)
-  (let [opts (cli/parse-opts args cli-spec)]
-    (prn opts)
-    (prn (sort-by val > (min-count (cook (zipmap (:item opts)
-                                                 (if (contains? opts :num)
-                                                   (:num opts)
-                                                   (repeat 1)))))))))
+  (sort-by val > (min-count (cook (select-items)))))
